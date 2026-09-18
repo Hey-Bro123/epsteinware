@@ -1,5 +1,4 @@
 --EpsteinWare v2
-local WARN = rconsoleprint or warn
 local GetEnv = getgenv or getfenv
 local function load(ins:Instance)
 	local reqcache = {}
@@ -60,7 +59,7 @@ local function load(ins:Instance)
 	.. "\n"
 	.. source
 )
-        if not S then WARN("(EPSTEINWARE) Compiler error ("..scr:GetFullName()..") "..E) return end
+        if not S then warn("(EPSTEINWARE) Compiler error ("..scr:GetFullName()..") "..E) return end
         return S
 	end
 
