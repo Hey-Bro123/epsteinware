@@ -3,9 +3,13 @@ Loading in studio (ElevatedStudioPlugin):
 ```lua
 game:SetFastFlagForTesting("EnableLoadModule",true)
 function loadstring(code,chunkName)
+	chunkName = chunkName or code
+	if #chunkName >= 241 then
+		chunkName = chunkName:sub(1, 241).."..."
+	end
 	local SK = Instance.new("ModuleScript",workspace)
 	SK.Source = "return function(...)\n"..code.."\nend"
-	SK.Name = chunkName or ""
+	SK.Name = chunkName
 	local func = debug.loadmodule(SK)()
 	setfenv(func,getfenv(2))
 	return func
