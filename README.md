@@ -7,7 +7,7 @@ function loadstring(code,chunkName)
 	if #chunkName >= 241 then
 		chunkName = chunkName:sub(1, 241).."..."
 	end
-	local SK = Instance.new("ModuleScript",workspace)
+	local SK = Instance.new("ModuleScript")
 	SK.Source = "return function(...)\n"..code.."\nend"
 	SK.Name = chunkName
 	local func = debug.loadmodule(SK)()
