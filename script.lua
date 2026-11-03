@@ -22,8 +22,8 @@ local function load(ins:Instance)
 
 			local ogtask = task
 			local task2 = table.clone(ogtask)
-			task2.spawn = function(f)
-				local new = ogtask.spawn(f)
+			task2.spawn = function(f,...)
+				local new = ogtask.spawn(f,...)
 				threads[#threads+1] = new
 				return new
 			end
