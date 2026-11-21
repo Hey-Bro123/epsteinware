@@ -90,7 +90,7 @@ local function load(ins:Instance)
 
 	local loaded = {}
 	local function sce(v)
-		if v.ClassName ~= "ModuleScript" and not loaded[v] then
+		if v.ClassName ~= "ModuleScript" and not loaded[v] and v.Enabled then
 			loaded[v] = true
 			task.spawn(function() local l = loadscript(v) if l then l() end end)
 		end
