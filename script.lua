@@ -1,4 +1,6 @@
---EpsteinWare v2
+--EpsteinWare v3
+--!nolint DeprecatedApi
+
 local GetEnv = getgenv or getfenv
 local function load(ins:Instance)
 	local reqcache = {}
@@ -16,51 +18,94 @@ local function load(ins:Instance)
 			script = scr,
 		}
 		local source
-		if scr:IsA("Script") then -- LocalScript,Script
-			local threads = {}
-			local coroutines = {}
-
-			local ogtask = task
-			local task2 = table.clone(ogtask)
-			task2.spawn = function(f,...)
-				local new = ogtask.spawn(f,...)
-				threads[#threads+1] = new
-				return new
-			end
-			local ogco = coroutine
-			local coroutine2 = table.clone(coroutine)
-			coroutine2.create = function(f)
-				local new = ogco.create(f)
-				coroutines[#coroutines+1] = new
-				return new
-			end
-			things.co2 = coroutine2
-			things.task2 = task2
-			table.freeze(coroutine2)
-			table.freeze(task2)
-			INI ..= "\nlocal coroutine = things.co2 local task = things.task2"
-			
-			source = "local M = coroutine.create(function()\n"..scr.Source.."\nend) coroutine.resume(M)"
-			scr.Destroying:Once(function()
-				table.foreach(threads,function(_,v)
-					pcall(task.cancel,v)
-				end)
-				table.foreach(coroutines,function(_,v)
-					pcall(coroutine.close,v)
-				end)
-			end)
-		else
-			source = scr.Source
-		end
-		GetEnv()[key] = things
 		
-		local S,E = loadstring(
-	INI
-	.. "\n"
-	.. source
-)
-        if not S then warn("(EPSTEINWARE) Compiler error ("..scr:GetFullName()..") "..E) return end
-        return S
+		local function loadit()
+			local S,E = loadstring(
+				INI
+					.. "\n"
+					.. source
+			)
+			if not S then warn("(EPSTEINWARE) Compiler error ("..scr:GetFullName()..") "..E) return end
+			return S
+		end
+		
+
+		local threads = {}
+		local coroutines = {}
+
+		local ogtask = task
+		local task2 = table.clone(ogtask)
+		task2.spawn = function(f,...)
+			local new = ogtask.spawn(f,...)
+			threads[#threads+1] = new
+			return new
+		end
+		task2.defer = function(f,...)
+			local new = ogtask.defer(f,...)
+			threads[#threads+1] = new
+			return new
+		end
+
+		local ogco = coroutine
+		local coroutine2 = table.clone(coroutine)
+		coroutine2.create = function(f)
+			local new = ogco.create(f)
+			coroutines[#coroutines+1] = new
+			return new
+		end
+		things.co2 = coroutine2
+		things.task2 = task2
+		table.freeze(coroutine2)
+		table.freeze(task2)
+		
+		local function stopscript()
+			table.foreach(threads,function(_,v)
+				pcall(task.cancel,v)
+			end)
+			table.foreach(coroutines,function(_,v)
+				pcall(coroutine.close,v)
+			end)
+			table.clear(threads)
+			table.clear(coroutines)
+		end
+		INI ..= "\nlocal coroutine = things.co2 local task = things.task2"
+		
+		if scr:IsA("Script") then -- LocalScript,Script
+			source = "local M = coroutine.create(function()\n"..scr.Source.."\nend) coroutine.resume(M)"		
+			
+			scr:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if scr.Enabled then
+					loadit()
+				else
+					stopscript()
+				end
+			end)
+		else -- ModuleScript
+			-- keep extra so that it errors later with "module code did not return exactly one value"
+			source = [[
+        local retvals
+        local M = coroutine.create(function()
+            retvals = {(function()
+    ]] .. scr.Source .. [[
+            end)()}
+        end)
+        coroutine.resume(M)
+        
+        while coroutine.status(M) ~= "dead" do
+            task.wait()
+        end
+        
+        if #retvals ~= 1 then
+        	return "two","values","error"
+        end
+
+        return unpack(retvals)
+    ]]
+		end
+		scr.Destroying:Once(stopscript)
+		
+		GetEnv()[key] = things
+		return loadit()
 	end
 
 	GetEnv().requireEPSTEINWARE = function(mod)
@@ -80,7 +125,7 @@ local function load(ins:Instance)
 				end
 				reqcache[mod] = res[1]
 			else
-				if errcache[mod] then return error(reqcache[mod]) end
+				if errcache[mod] then return error(errcache[mod]) end
 			end
 			return reqcache[mod]
 		else
@@ -95,15 +140,19 @@ local function load(ins:Instance)
 			task.spawn(function() local l = loadscript(v) if l then l() end end)
 		end
 	end
-	for _,v in ins:QueryDescendants("LuaSourceContainer") do
-		sce(v)
-	end
-	ins.DescendantAdded:Connect(function(v)
-		if v:IsA("LuaSourceContainer") then
+	if ins:IsA"Script" then
+		sce(ins)
+	else
+		for _,v in ins:QueryDescendants("LuaSourceContainer") do
 			sce(v)
 		end
-	end)
+		ins.DescendantAdded:Connect(function(v)
+			if v:IsA("LuaSourceContainer") then
+				sce(v)
+			end
+		end)
+	end
 end
 for _,v in {...} do
-  load(v)
+	load(v)
 end
