@@ -81,7 +81,27 @@ local function load(ins:Instance)
 				end
 			end)
 		else -- ModuleScript
-			source = scr.Source
+			-- keep extra so that it errors later with "module code did not return exactly one value"
+			source = [[
+        local retvals
+        local M = coroutine.create(function()
+            retvals = {(function()
+    ]] .. scr.Source .. [[
+            end)()}
+        end)
+        success, result = coroutine.resume(M)
+    	if not success then error(result) end
+        
+        while coroutine.status(M) ~= "dead" do
+            task.wait()
+        end
+        
+        if #retvals ~= 1 then
+        	return "two","values","error"
+        end
+
+        return unpack(retvals)
+    ]]
 		end
 		scr.Destroying:Once(stopscript)
 		
