@@ -89,9 +89,12 @@ local function load(ins:Instance)
     ]] .. scr.Source .. [[
             end)()}
         end)
-        coroutine.resume(M)
+        success, result = coroutine.resume(M)
+    	if not success then error(result) end
         
         while coroutine.status(M) ~= "dead" do
+			success, result = coroutine.resume(M)
+    		if not success then error(result) end
             task.wait()
         end
         
