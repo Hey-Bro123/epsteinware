@@ -1,5 +1,5 @@
 # epsteinware
-https://fluxer.gg/haMWlgf7
+https://discord.gg/rqvbsu3hps
 Loading in studio (ElevatedStudioPlugin):
 ```lua
 game:SetFastFlagForTesting("EnableLoadModule",true)
