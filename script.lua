@@ -136,9 +136,9 @@ local function load(ins:Instance)
 
 	local loaded = {}
 	local function sce(v)
-		if v.ClassName ~= "ModuleScript" and not loaded[v] and v.Enabled then
+		if v.ClassName ~= "ModuleScript" and not loaded[v] then
 			loaded[v] = true
-			task.spawn(function() local l = loadscript(v) if l then l() end end)
+			task.spawn(function() local l = loadscript(v) if l and v.Enabled then l() end end)
 		end
 	end
 	if ins:IsA"Script" then
